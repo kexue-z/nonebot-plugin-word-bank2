@@ -8,10 +8,10 @@ from nonebot.adapters.onebot.v11.permission import (
     PRIVATE_FRIEND,
 )
 from nonebot.adapters.onebot.v11.utils import unescape
-from nonebot.log import logger
 from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, RegexGroup, ArgPlainText
+from nonebot.params import CommandArg, RegexGroup, State
 from nonebot.permission import SUPERUSER
+from nonebot.typing import T_State, T_Handler
 
 from .data_source import word_bank as wb
 from .util import (
@@ -24,16 +24,20 @@ reply_type = "random"
 
 export().word_bank = wb
 
+
+def get_session_id(event: MessageEvent) -> str:
+    if isinstance(event, GroupMessageEvent):
+        return f"group_{event.group_id}"
+    else:
+        return f"private_{event.user_id}"
+
+
 wb_matcher = on_message(priority=99)
 
 
 @wb_matcher.handle()
 async def handle_wb(bot: Bot, event: MessageEvent):
-    if isinstance(event, GroupMessageEvent):
-        index = event.group_id
-    else:
-        index = event.user_id
-
+    index = get_session_id(event)
     msgs = wb.match(index, unescape(str(event.get_message())), to_me=event.is_tome())
     if not msgs:
         wb_matcher.block = False
@@ -74,13 +78,7 @@ wb_set_cmd = on_regex(
 async def wb_set(
     bot: Bot, event: MessageEvent, matched: Tuple[str, ...] = RegexGroup()
 ):
-
-    if isinstance(event, GroupMessageEvent):
-        index = event.group_id
-    else:
-        index = event.user_id
-
-    pic_data = get_message_img(event.json())
+    index = get_session_id(event)
 
     flag, key, value = matched
     type_ = 3 if "正则" in flag else 2 if "模糊" in flag else 1
@@ -92,11 +90,12 @@ async def wb_set(
                 key = key.replace(name, "/atme ", 1)
                 break
 
+    pic_data = get_message_img(event.json())
     if pic_data and ("CQ:image" not in key):
         # 如果回答中含有图片 则保存图片 并将图片替换为 /img xxx.image
         value = await wb.convert_and_save_img(pic_data, value)
 
-    res = wb.set(0 if "全局" in flag else index, unescape(key), value, type_)
+    res = wb.set("0" if "全局" in flag else index, unescape(key), value, type_)
     if res:
         await wb_set_cmd.finish(message="我记住了~")
 
@@ -109,22 +108,8 @@ wb_del_cmd = on_command(
 
 
 @wb_del_cmd.handle()
-async def wb_del_(event: MessageEvent, arg: Message = CommandArg()):
-    logger.debug(isinstance(event, GroupMessageEvent))
-
-    if isinstance(event, GroupMessageEvent):
-        index = event.group_id
-    else:
-        index = event.user_id
-
-    logger.debug(index)
-
-    msg = arg.extract_plain_text()
-
-    logger.debug(msg)
-    res = wb.delete(index, unescape(msg))
-    if res:
-        await wb_del_cmd.finish(message="删除成功~")
+async def _(event: MessageEvent, arg: Message = CommandArg()):
+    await wb_del(wb_del_cmd, get_session_id(event), arg)
 
 
 wb_del_admin = on_command(
@@ -135,66 +120,64 @@ wb_del_admin = on_command(
 
 
 @wb_del_admin.handle()
-async def wb_del_admin_(arg: Message = CommandArg()):
+async def _(arg: Message = CommandArg()):
+    await wb_del(wb_del_cmd, "0", arg)
+
+
+async def wb_del(matcher: Matcher, index: str, arg: Message):
     msg = arg.extract_plain_text().strip()
     if msg:
-        res = wb.delete(0, unescape(msg))
+        res = wb.delete(index, unescape(msg))
         if res:
-            await wb_del_admin.finish(message="删除成功~")
+            await matcher.finish(message="删除成功~")
 
 
-async def wb_del_all(matcher: Matcher, arg: Message = CommandArg()):
-    msg = arg.extract_plain_text().strip()
-    if msg:
-        matcher.set_arg("is_sure", Message(msg))
+def wb_del_all(type_: str = None) -> T_Handler:
+    async def wb_del_all_(
+        event: MessageEvent, arg: Message = CommandArg(), state: T_State = State()
+    ):
+        msg = arg.extract_plain_text().strip()
+        if msg:
+            state["is_sure"] = msg
+
+        if not type_:
+            index = get_session_id(event)
+            keyword = "群聊" if isinstance(event, GroupMessageEvent) else "个人"
+        else:
+            index = "0" if type_ == "全局" else None
+            keyword = type_
+        state["index"] = index
+        state["keyword"] = keyword
+
+    return wb_del_all_
 
 
 wb_del_all_cmd = on_command(
     "删除词库",
     block=True,
     permission=SUPERUSER | GROUP_OWNER | PRIVATE_FRIEND,
-    handlers=[wb_del_all],
+    handlers=[wb_del_all()],
 )
 wb_del_all_admin = on_command(
-    "删除全局词库", block=True, permission=SUPERUSER, handlers=[wb_del_all]
+    "删除全局词库", block=True, permission=SUPERUSER, handlers=[wb_del_all("全局")]
 )
 wb_del_all_bank = on_command(
-    "删除全部词库", block=True, permission=SUPERUSER, handlers=[wb_del_all]
+    "删除全部词库", block=True, permission=SUPERUSER, handlers=[wb_del_all("全部")]
 )
 
 
-@wb_del_all_cmd.got("is_sure", prompt="此命令将会清空您的群聊/私人词库，确定请发送 yes")
-async def wb_del_all_(event: MessageEvent, is_sure: str = ArgPlainText()):
+prompt_clean = Message.template("此命令将会清空您的{keyword}词库，确定请发送 yes")
+
+
+@wb_del_all_cmd.got("is_sure", prompt=prompt_clean)
+@wb_del_all_admin.got("is_sure", prompt=prompt_clean)
+@wb_del_all_bank.got("is_sure", prompt=prompt_clean)
+async def _(matcher: Matcher, state: T_State = State()):
+    is_sure = str(state["is_sure"]).strip()
+    index = state["index"]
     if is_sure == "yes":
-
-        if isinstance(event, GroupMessageEvent):
-            res = wb.clean(event.group_id)
-            if res:
-                await wb_del_all_cmd.finish("删除群聊词库成功~")
-        else:
-            res = wb.clean(event.user_id)
-            if res:
-                await wb_del_all_cmd.finish("删除个人词库成功~")
-
-    else:
-        await wb_del_all_cmd.finish("命令取消")
-
-
-@wb_del_all_admin.got("is_sure", prompt="此命令将会清空您的全局词库，确定请发送 yes")
-async def wb_del_all_admin_(is_sure: str = ArgPlainText()):
-    if is_sure == "yes":
-        res = wb.clean(0)
+        res = wb.clean(index)
         if res:
-            await wb_del_all_admin.finish("删除全局词库成功~")
+            await matcher.finish(Message.template("删除{keyword}词库成功~"))
     else:
-        await wb_del_all_admin.finish("命令取消")
-
-
-@wb_del_all_bank.got("is_sure", prompt="此命令将会清空您的全部词库，确定请发送 yes")
-async def wb_del_all_bank_(is_sure: str = ArgPlainText()):
-    if is_sure == "yes":
-        res = wb._clean_all()
-        if res:
-            await wb_del_all_bank.finish("删除全部词库成功~")
-    else:
-        await wb_del_all_bank.finish("命令取消")
+        await matcher.finish("命令取消")

@@ -2,7 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import List, Optional, Union, Dict
+from typing import List, Optional, Dict
 
 import aiofiles as aio
 from nonebot.adapters.onebot.v11 import Message
@@ -44,7 +44,7 @@ class WordBank(object):
             logger.success("创建词库位于 " + str(self.bank_path))
 
     def match(
-        self, index: Union[int, str], msg: str, flags: int = 0, to_me: bool = False
+        self, index: str, msg: str, flags: int = 0, to_me: bool = False
     ) -> Optional[List]:
         """
         匹配词条
@@ -69,7 +69,7 @@ class WordBank(object):
                     return re_msg
 
     def _match(
-        self, index: Union[int, str], msg: str, flags: int = 1, to_me: bool = False
+        self, index: str, msg: str, flags: int = 1, to_me: bool = False
     ) -> Optional[List]:
         """
         匹配词条
@@ -115,7 +115,7 @@ class WordBank(object):
         with open(self.bank_path, "w", encoding="utf-8") as f:
             json.dump(self.__data, f, ensure_ascii=False, indent=4)
 
-    def set(self, index: Union[int, str], key: str, value: str, flags: int = 1) -> bool:
+    def set(self, index: str, key: str, value: str, flags: int = 1) -> bool:
         """
         新增词条
 
@@ -146,7 +146,7 @@ class WordBank(object):
         self.__save()
         return True
 
-    def delete(self, index: Union[int, str], key: str) -> bool:
+    def delete(self, index: str, key: str) -> bool:
         """
         删除词条
 
@@ -165,13 +165,18 @@ class WordBank(object):
         self.__save()
         return flag
 
-    def clean(self, index: Union[int, str]) -> bool:
+    def clean(self, index: Optional[str] = None) -> bool:
         """
         清空某个对象的词库
 
-        :param index: 为0时是全局词库
+        :param index: 为0时是全局词库, 为空时清空所有词库
         :return:
         """
+        if index is None:
+            self.__data = NULL_BANK
+            self.__save()
+            return True
+
         index = str(index)
         flag = False
 
@@ -182,16 +187,6 @@ class WordBank(object):
 
         self.__save()
         return flag
-
-    def _clean_all(self):
-        """
-        清空所有词库
-
-        :return:
-        """
-        self.__data = NULL_BANK
-        self.__save()
-        return True
 
     async def save_img(self, img: bytes, filename: str) -> None:
         async with aio.open(str(self.img_dir / filename), "wb") as f:
