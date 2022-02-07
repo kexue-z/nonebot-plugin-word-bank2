@@ -1,7 +1,7 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Tuple
 
 import aiofiles as aio
 from httpx import AsyncClient, Response
@@ -11,7 +11,7 @@ def parse_cmd(pattern, msg: str) -> list:
     return re.findall(pattern, msg, re.S)
 
 
-def parse_at(msg: str) -> tuple[str, dict]:
+def parse_at(msg: str) -> Tuple[str, dict]:
     matcher = re.findall(r"/at\s?([0-9]*)", msg)
     qq_dict = {}
     for qq in matcher:
@@ -95,7 +95,7 @@ def file_list_add_path(file_list: List[str], path: Path) -> List[str]:
     return file_list
 
 
-def parse_all_msg(msg, **kwargs) -> tuple[str, dict]:
+def parse_all_msg(msg, **kwargs) -> Tuple[str, dict]:
     a = parse_self(msg, **kwargs)
     b, at = parse_at(a)
     c = parse_img(b)

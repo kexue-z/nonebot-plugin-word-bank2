@@ -2,7 +2,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 
 import aiofiles as aio
 from nonebot.adapters.onebot.v11 import Message
@@ -43,7 +43,9 @@ class WordBank(object):
             self.__save()
             logger.success("创建词库位于 " + str(self.bank_path))
 
-    def match(self, index: Union[int, str], msg: str, flags: int = 0) -> Optional[List]:
+    def match(
+        self, index: Union[int, str], msg: str, flags: int = 0, to_me: bool = False
+    ) -> Optional[List]:
         """
         匹配词条
 
@@ -58,16 +60,16 @@ class WordBank(object):
         msg = remove_spaces(msg)
 
         if flags:
-            return self._match(index, msg, flags)
+            return self._match(index, msg, flags, to_me)
 
         else:
             for type_ in range(1, len(self.__data) + 1):
-                re_msg = self._match(index, msg, type_)
+                re_msg = self._match(index, msg, type_, to_me)
                 if re_msg:
                     return re_msg
 
     def _match(
-        self, index: Union[int, str], msg: str, flags: int = 1
+        self, index: Union[int, str], msg: str, flags: int = 1, to_me: bool = False
     ) -> Optional[List]:
         """
         匹配词条
@@ -84,22 +86,24 @@ class WordBank(object):
             index = str(index)
 
         type_ = OPTIONS[flags - 1]
-        bank = dict(
+        bank: Dict[str, list] = dict(
             self.__data[type_].get(index, {}), **self.__data[type_].get("0", {})
         )
 
         if flags == 1:
-            return bank.get(msg, [])
+            return (bank.get(f"/atme {msg}", []) if to_me else []) or bank.get(msg, [])
 
         elif flags == 2:
             for key in bank:
-                if key in msg:
+                if (key in f"/atme {msg}" if to_me else False) or key in msg:
                     return bank[key]
 
         elif flags == 3:
             for key in bank:
                 try:
-                    if re.search(key, msg, re.S):
+                    if (
+                        re.search(key, f"/atme {msg}", re.S) if to_me else False
+                    ) or re.search(key, msg, re.S):
                         return bank[key]
                 except re.error:
                     logger.error(f"正则匹配错误 - pattern: {key}, string: {msg}")
