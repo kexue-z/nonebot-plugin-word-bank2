@@ -1,3 +1,4 @@
+import re
 import random
 from typing import Tuple
 from nonebot import export, on_command, on_message, on_regex
@@ -13,6 +14,7 @@ from nonebot.params import CommandArg, RegexGroup, State
 from nonebot.permission import SUPERUSER
 from nonebot.typing import T_State, T_Handler
 
+from .data_source import MatchType
 from .data_source import word_bank as wb
 from .util import (
     get_message_img,
@@ -37,8 +39,11 @@ wb_matcher = on_message(priority=99)
 
 @wb_matcher.handle()
 async def handle_wb(bot: Bot, event: MessageEvent):
-    index = get_session_id(event)
-    msgs = wb.match(index, unescape(str(event.get_message())), to_me=event.is_tome())
+    msgs = wb.match(
+        get_session_id(event),
+        unescape(str(event.get_message()).strip()),
+        to_me=event.is_tome(),
+    )
     if not msgs:
         wb_matcher.block = False
         await wb_matcher.finish()
@@ -67,21 +72,41 @@ async def handle_wb(bot: Bot, event: MessageEvent):
         )
 
 
+PERM_EDIT = GROUP_ADMIN | GROUP_OWNER | PRIVATE_FRIEND | SUPERUSER
+PERM_GLOBAL = SUPERUSER
+
+
 wb_set_cmd = on_regex(
-    r"^((?:全局|模糊|正则|@)*)\s*问\s?(.+?)\s?答\s?(.+)",
+    r"^((?:模糊|正则|@)*)\s*问\s*(\S+.*?)\s*答\s*(\S+.*?)\s*",
+    flags=re.S,
     block=True,
-    permission=GROUP_ADMIN | GROUP_OWNER | PRIVATE_FRIEND | SUPERUSER,
+    permission=PERM_EDIT,
+)
+
+wb_set_cmd_gl = on_regex(
+    r"^((?:全局|模糊|正则|@)*)\s*问\s*(\S+.*?)\s*答\s*(\S+.*?)\s*",
+    flags=re.S,
+    block=True,
+    permission=PERM_GLOBAL,
 )
 
 
 @wb_set_cmd.handle()
+@wb_set_cmd_gl.handle()
 async def wb_set(
-    bot: Bot, event: MessageEvent, matched: Tuple[str, ...] = RegexGroup()
+    bot: Bot,
+    event: MessageEvent,
+    matcher: Matcher,
+    matched: Tuple[str, ...] = RegexGroup(),
 ):
-    index = get_session_id(event)
-
     flag, key, value = matched
-    type_ = 3 if "正则" in flag else 2 if "模糊" in flag else 1
+    type_ = (
+        MatchType.regex
+        if "正则" in flag
+        else MatchType.include
+        if "模糊" in flag
+        else MatchType.congruence
+    )
     if "@" in flag:
         key = "/atme " + key
     else:
@@ -95,45 +120,61 @@ async def wb_set(
         # 如果回答中含有图片 则保存图片 并将图片替换为 /img xxx.image
         value = await wb.convert_and_save_img(pic_data, value)
 
-    res = wb.set("0" if "全局" in flag else index, unescape(key), value, type_)
+    index = get_session_id(event)
+    index = "0" if "全局" in flag else index
+    res = wb.set(index, unescape(key), value, type_)
     if res:
-        await wb_set_cmd.finish(message="我记住了~")
+        await matcher.finish(message="我记住了~")
 
 
-wb_del_cmd = on_command(
-    "删除词条",
+wb_del_cmd = on_regex(
+    r"^删除\s*((?:模糊|正则|@)*)\s*词条\s*(\S+.*?)\s*",
+    flags=re.S,
     block=True,
-    permission=SUPERUSER | GROUP_OWNER | GROUP_ADMIN | PRIVATE_FRIEND,
+    permission=PERM_EDIT,
+)
+
+wb_del_cmd_gl = on_regex(
+    r"^删除\s*((?:全局|模糊|正则|@)*)\s*词条\s*(\S+.*?)\s*",
+    flags=re.S,
+    block=True,
+    permission=PERM_GLOBAL,
 )
 
 
 @wb_del_cmd.handle()
-async def _(event: MessageEvent, arg: Message = CommandArg()):
-    await wb_del(wb_del_cmd, get_session_id(event), arg)
+@wb_del_cmd_gl.handle()
+async def _(
+    bot: Bot,
+    event: MessageEvent,
+    matcher: Matcher,
+    matched: Tuple[str, ...] = RegexGroup(),
+):
+    flag, key = matched
+    type_ = (
+        MatchType.regex
+        if "正则" in flag
+        else MatchType.include
+        if "模糊" in flag
+        else MatchType.congruence
+    )
+    if "@" in flag:
+        key = "/atme " + key
+    else:
+        for name in bot.config.nickname:
+            if key.startswith(name):
+                key = key.replace(name, "/atme ", 1)
+                break
+
+    index = get_session_id(event)
+    index = "0" if "全局" in flag else index
+    res = wb.delete(index, unescape(key), type_)
+    if res:
+        await matcher.finish("删除成功~")
 
 
-wb_del_admin = on_command(
-    "删除全局词条",
-    block=True,
-    permission=SUPERUSER,
-)
-
-
-@wb_del_admin.handle()
-async def _(arg: Message = CommandArg()):
-    await wb_del(wb_del_cmd, "0", arg)
-
-
-async def wb_del(matcher: Matcher, index: str, arg: Message):
-    msg = arg.extract_plain_text().strip()
-    if msg:
-        res = wb.delete(index, unescape(msg))
-        if res:
-            await matcher.finish(message="删除成功~")
-
-
-def wb_del_all(type_: str = None) -> T_Handler:
-    async def wb_del_all_(
+def wb_clear(type_: str = None) -> T_Handler:
+    async def wb_clear_(
         event: MessageEvent, arg: Message = CommandArg(), state: T_State = State()
     ):
         msg = arg.extract_plain_text().strip()
@@ -149,34 +190,34 @@ def wb_del_all(type_: str = None) -> T_Handler:
         state["index"] = index
         state["keyword"] = keyword
 
-    return wb_del_all_
+    return wb_clear_
 
 
-wb_del_all_cmd = on_command(
+wb_clear_cmd = on_command(
     "删除词库",
     block=True,
-    permission=SUPERUSER | GROUP_OWNER | PRIVATE_FRIEND,
-    handlers=[wb_del_all()],
+    permission=PERM_EDIT,
+    handlers=[wb_clear()],
 )
-wb_del_all_admin = on_command(
-    "删除全局词库", block=True, permission=SUPERUSER, handlers=[wb_del_all("全局")]
+wb_clear_cmd_gl = on_command(
+    "删除全局词库", block=True, permission=PERM_GLOBAL, handlers=[wb_clear("全局")]
 )
-wb_del_all_bank = on_command(
-    "删除全部词库", block=True, permission=SUPERUSER, handlers=[wb_del_all("全部")]
+wb_clear_bank = on_command(
+    "删除全部词库", block=True, permission=PERM_GLOBAL, handlers=[wb_clear("全部")]
 )
 
 
-prompt_clean = Message.template("此命令将会清空您的{keyword}词库，确定请发送 yes")
+prompt_clear = Message.template("此命令将会清空您的{keyword}词库，确定请发送 yes")
 
 
-@wb_del_all_cmd.got("is_sure", prompt=prompt_clean)
-@wb_del_all_admin.got("is_sure", prompt=prompt_clean)
-@wb_del_all_bank.got("is_sure", prompt=prompt_clean)
+@wb_clear_cmd.got("is_sure", prompt=prompt_clear)
+@wb_clear_cmd_gl.got("is_sure", prompt=prompt_clear)
+@wb_clear_bank.got("is_sure", prompt=prompt_clear)
 async def _(matcher: Matcher, state: T_State = State()):
     is_sure = str(state["is_sure"]).strip()
     index = state["index"]
     if is_sure == "yes":
-        res = wb.clean(index)
+        res = wb.clear(index)
         if res:
             await matcher.finish(Message.template("删除{keyword}词库成功~"))
     else:
