@@ -1,14 +1,11 @@
-import json
 import re
+import json
 from enum import Enum
 from pathlib import Path
+from functools import lru_cache
 from typing import List, Optional, Dict
 
-import aiofiles as aio
-from nonebot.adapters.onebot.v11 import Message
 from nonebot.log import logger
-
-from .util import file_list_add_path, get_img, load_image, parse_all_msg
 
 
 class MatchType(Enum):
@@ -44,7 +41,9 @@ class WordBank(object):
     def __save(self):
         with self.bank_path.open("w", encoding="utf-8") as f:
             json.dump(self.__data, f, ensure_ascii=False, indent=4)
+        self.match.cache_clear()
 
+    @lru_cache(100)
     def match(
         self,
         index: str,
@@ -118,7 +117,6 @@ class WordBank(object):
                 self.__data[name][index][key] = [value]
         else:
             self.__data[name][index] = {key: [value]}
-
         self.__save()
         return True
 
@@ -136,9 +134,9 @@ class WordBank(object):
         name = match_type.name
         if self.__data[name].get(index, {}).get(key, False):
             del self.__data[name][index][key]
-
-        self.__save()
-        return True
+            self.__save()
+            return True
+        return False
 
     def clear(self, index: str) -> bool:
         """
@@ -154,45 +152,8 @@ class WordBank(object):
                 name = type_.name
                 if self.__data[name].get(index, {}):
                     del self.__data[name][index]
-
         self.__save()
         return True
-
-    async def save_img(self, img: bytes, filename: str) -> None:
-        async with aio.open(str(self.img_dir / filename), "wb") as f:
-            await f.write(img)
-
-    async def load_img(self, filename: str) -> bytes:
-        async with aio.open(str(self.img_dir / filename), "rb") as f:
-            return await f.read()
-
-    async def convert_and_save_img(self, img_list: list, raw_message: str) -> str:
-        """将图片保存,并将图片替换为图片名字
-
-        Args:
-            img_list (list): Meassage 中所有的图片列表 [{"url": "http://xxx", "filename": "xxx.image"}]
-            raw_message (str): [event.raw_message
-
-        Returns:
-            str: 转换后的raw_message
-        """
-        # 保存图片
-        for img in img_list:
-            res = await get_img(img["url"])
-            await self.save_img(res.content, img["file"])
-        # 将图片的位置替换为 /img xxx.image
-        return re.sub(
-            r"\[CQ:image.*?file=(.*).image.*?]", r"/img \1.image", raw_message
-        )
-
-    async def parse_msg(self, msg, **kwargs) -> Message:
-        img_dir_list = file_list_add_path(
-            re.findall(r"/img (.*?.image)", msg), self.img_dir
-        )
-        file_list = await load_image(img_dir_list)
-        # msg = re.sub(r"/img (.*?).image", "{:image}", msg)
-        msg, at = parse_all_msg(msg, **kwargs)
-        return Message.template(msg).format(*file_list, **at, **kwargs)
 
 
 word_bank = WordBank()

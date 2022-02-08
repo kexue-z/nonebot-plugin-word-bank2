@@ -16,11 +16,7 @@ from nonebot.typing import T_State, T_Handler
 
 from .data_source import MatchType
 from .data_source import word_bank as wb
-from .util import (
-    get_message_img,
-    parse_ban_msg,
-    parse_ban_time,
-)
+from .util import parse_msg, save_and_convert_img
 
 reply_type = "random"
 
@@ -38,7 +34,7 @@ wb_matcher = on_message(priority=99)
 
 
 @wb_matcher.handle()
-async def handle_wb(bot: Bot, event: MessageEvent):
+async def handle_wb(event: MessageEvent):
     msgs = wb.match(
         get_session_id(event),
         unescape(str(event.get_message()).strip()),
@@ -53,19 +49,8 @@ async def handle_wb(bot: Bot, event: MessageEvent):
         msgs = [random.choice(msgs)]
 
     for msg in msgs:
-        duration = parse_ban_time(msg)
-
-        if duration and isinstance(event, GroupMessageEvent):
-            msg = parse_ban_msg(msg)
-            await bot.set_group_ban(
-                group_id=event.group_id,
-                user_id=event.user_id,
-                duration=duration,
-            )
-
         await wb_matcher.finish(
-            await wb.parse_msg(
-                msg=msg,
+            Message.template(Message(msg)).format(
                 nickname=event.sender.card or event.sender.nickname,
                 sender_id=event.sender.user_id,
             )
@@ -77,16 +62,18 @@ PERM_GLOBAL = SUPERUSER
 
 
 wb_set_cmd = on_regex(
-    r"^((?:模糊|正则|@)*)\s*问\s*(\S+.*?)\s*答\s*(\S+.*?)\s*",
+    r"^((?:模糊|正则|@)*)\s*问\s*(\S+.*?)\s*答\s*(\S+.*?)\s*$",
     flags=re.S,
     block=True,
+    priority=11,
     permission=PERM_EDIT,
 )
 
 wb_set_cmd_gl = on_regex(
-    r"^((?:全局|模糊|正则|@)*)\s*问\s*(\S+.*?)\s*答\s*(\S+.*?)\s*",
+    r"^((?:全局|模糊|正则|@)*)\s*问\s*(\S+.*?)\s*答\s*(\S+.*?)\s*$",
     flags=re.S,
     block=True,
+    priority=10,
     permission=PERM_GLOBAL,
 )
 
@@ -115,10 +102,9 @@ async def wb_set(
                 key = key.replace(name, "/atme ", 1)
                 break
 
-    pic_data = get_message_img(event.json())
-    if pic_data and ("CQ:image" not in key):
-        # 如果回答中含有图片 则保存图片 并将图片替换为 /img xxx.image
-        value = await wb.convert_and_save_img(pic_data, value)
+    value = Message(parse_msg(value))
+    await save_and_convert_img(value, wb.img_dir)
+    value = str(value)
 
     index = get_session_id(event)
     index = "0" if "全局" in flag else index
@@ -128,16 +114,18 @@ async def wb_set(
 
 
 wb_del_cmd = on_regex(
-    r"^删除\s*((?:模糊|正则|@)*)\s*词条\s*(\S+.*?)\s*",
+    r"^删除\s*((?:模糊|正则|@)*)\s*词条\s*(\S+.*?)\s*$",
     flags=re.S,
     block=True,
+    priority=11,
     permission=PERM_EDIT,
 )
 
 wb_del_cmd_gl = on_regex(
-    r"^删除\s*((?:全局|模糊|正则|@)*)\s*词条\s*(\S+.*?)\s*",
+    r"^删除\s*((?:全局|模糊|正则|@)*)\s*词条\s*(\S+.*?)\s*$",
     flags=re.S,
     block=True,
+    priority=10,
     permission=PERM_GLOBAL,
 )
 
@@ -196,14 +184,15 @@ def wb_clear(type_: str = None) -> T_Handler:
 wb_clear_cmd = on_command(
     "删除词库",
     block=True,
+    priority=10,
     permission=PERM_EDIT,
     handlers=[wb_clear()],
 )
 wb_clear_cmd_gl = on_command(
-    "删除全局词库", block=True, permission=PERM_GLOBAL, handlers=[wb_clear("全局")]
+    "删除全局词库", block=True, priority=10, permission=PERM_GLOBAL, handlers=[wb_clear("全局")]
 )
 wb_clear_bank = on_command(
-    "删除全部词库", block=True, permission=PERM_GLOBAL, handlers=[wb_clear("全部")]
+    "删除全部词库", block=True, priority=10, permission=PERM_GLOBAL, handlers=[wb_clear("全部")]
 )
 
 
