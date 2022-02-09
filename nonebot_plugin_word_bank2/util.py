@@ -9,6 +9,11 @@ from nonebot.adapters.onebot.v11 import Message
 
 
 def parse_msg(msg: str) -> str:
+    """
+    替换回答中的 /at, /self, /atself
+
+    :param msg: 待处理的消息
+    """
     msg = re.sub(r"/at\s*(\d+)", lambda s: f"[CQ:at,qq={s.group(1)}]", msg)
     msg = re.sub(r"/self", "{nickname}", msg)
     msg = re.sub(r"/atself", "{sender_id:at}", msg)
@@ -36,7 +41,7 @@ async def save_img(img: bytes, filepath: Path):
 
 async def save_and_convert_img(msg: Message, img_dir: Path):
     """
-    将消息中的图片保存并替换
+    保存消息中的图片，并替换"file"中的文件名为本地路径
 
     :param msg: 待处理的消息
     :param img_dir: 图片保存路径
@@ -46,6 +51,7 @@ async def save_and_convert_img(msg: Message, img_dir: Path):
             filename = msg_seg.data.get("file", "")
             if not filename:
                 continue
+            # 检查图片文件夹中有无同名文件
             images = [f.name for f in img_dir.iterdir() if f.is_file()]
             filepath = img_dir / filename
             if filename not in images:
