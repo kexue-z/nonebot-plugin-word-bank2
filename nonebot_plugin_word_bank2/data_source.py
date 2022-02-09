@@ -9,9 +9,9 @@ from nonebot.log import logger
 
 
 class MatchType(Enum):
-    congruence = 1
-    include = 2
-    regex = 3
+    congruence = 1  # 全匹配(==)
+    include = 2  # 模糊匹配(in)
+    regex = 3  # 正则匹配(regex)
 
 
 NULL_BANK = {t.name: {"0": {}} for t in MatchType}
@@ -79,6 +79,7 @@ class WordBank(object):
             **self.__data[match_type.name].get("0", {}),
         )
 
+        # event.to_me 时优先匹配带"/atme "的词条
         if match_type == MatchType.congruence:
             return (bank.get(f"/atme {msg}", []) if to_me else []) or bank.get(msg, [])
 

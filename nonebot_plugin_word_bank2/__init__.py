@@ -95,15 +95,18 @@ async def wb_set(
         else MatchType.congruence
     )
     if "@" in flag:
+        # 给词条加"/atme "前缀用来区分@问
         key = "/atme " + key
     else:
+        # 以昵称开头的词条，替换为"/atme "开头
+        # 因为以昵称开头的消息 event message 中会去掉昵称
         for name in bot.config.nickname:
             if key.startswith(name):
                 key = key.replace(name, "/atme ", 1)
                 break
 
-    value = Message(parse_msg(value))
-    await save_and_convert_img(value, wb.img_dir)
+    value = Message(parse_msg(value))  # 替换/at, /self, /atself
+    await save_and_convert_img(value, wb.img_dir)  # 保存回答中的图片
     value = str(value)
 
     index = get_session_id(event)
@@ -175,8 +178,8 @@ def wb_clear(type_: str = None) -> T_Handler:
         else:
             index = "0" if type_ == "全局" else None
             keyword = type_
-        state["index"] = index
-        state["keyword"] = keyword
+        state["index"] = index  # 为 "0" 表示全局词库, 为 None 表示全部词库
+        state["keyword"] = keyword  # 群聊/个人/全局/全部
 
     return wb_clear_
 
