@@ -151,6 +151,7 @@ pip install nonebot-plugin-word-bank2
 - [Mrs4s/go-cqhttp](https://github.com/Mrs4s/go-cqhttp)
 - [nonebot/nonebot2](https://github.com/nonebot/nonebot2)
 - [Joenothing-lst/word-bank](https://github.com/Joenothing-lst/word-bank)
+- [MeetWq](https://github.com/MeetWq)
 
 # 优化建议
 
