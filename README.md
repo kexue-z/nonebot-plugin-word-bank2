@@ -140,12 +140,6 @@ pip install nonebot-plugin-word-bank2
 | 删除全部词库 | X    | X      | X        | O        |
 
 
-# 更新记录
-
-- v0.0.1 
-  - 基于fork进行重构
-
-
 # 特别感谢
 
 - [Mrs4s/go-cqhttp](https://github.com/Mrs4s/go-cqhttp)
