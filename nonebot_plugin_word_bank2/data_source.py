@@ -23,7 +23,7 @@ class WordBank(object):
         self.bank_path = self.data_dir / "bank.json"
         self.img_dir = self.data_dir / "img"
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self.img_dir.mkdir(exist_ok=True)
+        self.img_dir.mkdir(parents=True, exist_ok=True)
         self.__data: Dict[str, Dict[str, Dict[str, list]]] = {}
         self.__load()
 

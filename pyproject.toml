@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nonebot-plugin-word-bank2"
-version = "0.1.1"
+version = "0.1.2"
 description = "无数据问答插件"
 authors = ["kexue <x@kexue.io>"]
 license = "GPL-3.0"
