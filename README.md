@@ -12,6 +12,8 @@ _✨ 无数据库的轻量问答插件 ✨_
 
 因此需要改动nonebot bata1的源码才能正常使用 /atself 功能
 
+> beta2 不需要
+
 `...site-packages/nonebot/adapters/_template.py`
 
 `L178`从
