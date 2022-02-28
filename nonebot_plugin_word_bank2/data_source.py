@@ -85,20 +85,22 @@ class WordBank(object):
 
         elif match_type == MatchType.include:
             for key in bank:
+                key_ = key
                 if to_me and key.startswith("/atme "):
-                    key = key[6:]
-                if key in msg:
+                    key_ = key[6:]
+                if key_ in msg:
                     return bank[key]
 
         elif match_type == MatchType.regex:
             for key in bank:
+                key_ = key
                 if to_me and key.startswith("/atme "):
-                    key = key[6:]
+                    key_ = key[6:]
                 try:
-                    if re.search(key, msg, re.S):
+                    if re.search(key_, msg, re.S):
                         return bank[key]
                 except re.error:
-                    logger.error(f"正则匹配错误 - pattern: {key}, string: {msg}")
+                    logger.error(f"正则匹配错误 - pattern: {key_}, string: {msg}")
 
     def set(self, index: str, key: str, value: str, match_type: MatchType) -> bool:
         """
