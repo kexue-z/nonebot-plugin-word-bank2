@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from nonebot.log import logger
-from nonebot.adapters.onebot.v11 import Message
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 
 def parse_msg(msg: str) -> str:
@@ -63,3 +63,57 @@ async def save_and_convert_img(msg: Message, img_dir: Path):
                     continue
                 await save_img(data, filepath)
             msg_seg.data["file"] = f"file:///{filepath.resolve()}"
+
+
+def compare_msgseg(msg1: MessageSegment, msg2: MessageSegment) -> bool:
+    """
+    判断两个消息段是否一致，目前仅判断 text, face, at, image 类型
+
+    :param msg1: 消息段1
+    :param msg2: 消息段2
+    """
+    if msg1.type != msg2.type:
+        return False
+    msg_type = msg1.type
+    if msg_type == "text":
+        return msg1.data["text"] == msg2.data["text"]
+    elif msg_type == "face":
+        return msg1.data["id"] == msg2.data["id"]
+    elif msg_type == "at":
+        return msg1.data["qq"] == msg2.data["qq"]
+    elif msg_type == "image":
+        return msg1.data["file"] == msg2.data["file"]
+    return False
+
+
+def compare_msg(msg1: Message, msg2: Message) -> bool:
+    """
+    判断两个消息是否一致
+
+    :param msg1: 消息1
+    :param msg2: 消息2
+    """
+    for m1, m2 in zip(msg1, msg2):
+        if m1.type != m2.type:
+            return False
+        if not compare_msgseg(m1, m2):
+            return False
+    return True
+
+
+def include_msg(msg1: Message, msg2: Message) -> bool:
+    """
+    判断 消息1 是否包含 消息2，用于模糊匹配
+
+    :param msg1: 消息1
+    :param msg2: 消息2
+    """
+    for m1, m2 in zip(msg1, msg2):
+        if m1.type != m2.type:
+            return False
+        if m1.type == "text":
+            if str(m2.data["text"]).strip() not in m1.data["text"]:
+                return False
+        elif not compare_msgseg(m1, m2):
+            return False
+    return True

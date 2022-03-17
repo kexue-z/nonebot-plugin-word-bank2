@@ -1,6 +1,6 @@
 import re
 import random
-from typing import Tuple
+from typing import Tuple, List
 from nonebot import export, on_command, on_message, on_regex
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageEvent
 from nonebot.adapters.onebot.v11.permission import (
@@ -8,13 +8,12 @@ from nonebot.adapters.onebot.v11.permission import (
     GROUP_OWNER,
     PRIVATE_FRIEND,
 )
-from nonebot.adapters.onebot.v11.utils import unescape
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, RegexGroup, State
 from nonebot.permission import SUPERUSER
 from nonebot.typing import T_State, T_Handler
 
-from .data_source import MatchType
+from .models import MatchType
 from .data_source import word_bank as wb
 from .util import parse_msg, save_and_convert_img
 
@@ -30,27 +29,25 @@ def get_session_id(event: MessageEvent) -> str:
         return f"private_{event.user_id}"
 
 
-wb_matcher = on_message(priority=99)
+def wb_match_rule(event: MessageEvent, state: T_State = State()) -> bool:
+    msgs = wb.match(get_session_id(event), event.get_message(), to_me=event.is_tome())
+    if not msgs:
+        return False
+    if reply_type == "random":
+        msgs = [random.choice(msgs)]
+    state["replies"] = msgs
+    return True
+
+
+wb_matcher = on_message(wb_match_rule, priority=99)
 
 
 @wb_matcher.handle()
-async def handle_wb(event: MessageEvent):
-    msgs = wb.match(
-        get_session_id(event),
-        unescape(str(event.get_message()).strip()),
-        to_me=event.is_tome(),
-    )
-    if not msgs:
-        wb_matcher.block = False
-        await wb_matcher.finish()
-    wb_matcher.block = True
-
-    if reply_type == "random":
-        msgs = [random.choice(msgs)]
-
+async def handle_wb(event: MessageEvent, state: T_State = State()):
+    msgs: List[Message] = state["replies"]
     for msg in msgs:
         await wb_matcher.finish(
-            Message.template(Message(msg)).format(
+            Message.template(msg).format(
                 nickname=event.sender.card or event.sender.nickname,
                 sender_id=event.sender.user_id,
             )
@@ -94,24 +91,23 @@ async def wb_set(
         if "模糊" in flag
         else MatchType.congruence
     )
-    if "@" in flag:
-        # 给词条加"/atme "前缀用来区分@问
-        key = "/atme " + key
+    require_to_me: bool = False
+    if "@" in flag:  # @问需要to_me才会触发
+        require_to_me = True
     else:
-        # 以昵称开头的词条，替换为"/atme "开头
-        # 因为以昵称开头的消息 event message 中会去掉昵称
+        # 以昵称开头的词条视为需要to_me
         for name in bot.config.nickname:
             if key.startswith(name):
-                key = key.replace(name, "/atme ", 1)
+                key = key.replace(name, "", 1)
+                require_to_me = True
                 break
 
     value = Message(parse_msg(value))  # 替换/at, /self, /atself
     await save_and_convert_img(value, wb.img_dir)  # 保存回答中的图片
-    value = str(value)
 
     index = get_session_id(event)
     index = "0" if "全局" in flag else index
-    res = wb.set(index, unescape(key), value, type_)
+    res = wb.set(index, type_, Message(key), value, require_to_me)
     if res:
         await matcher.finish(message="我记住了~")
 
@@ -149,22 +145,24 @@ async def _(
         if "模糊" in flag
         else MatchType.congruence
     )
+    require_to_me: bool = False
     if "@" in flag:
-        key = "/atme " + key
+        require_to_me = True
     else:
         for name in bot.config.nickname:
             if key.startswith(name):
-                key = key.replace(name, "/atme ", 1)
+                key = key.replace(name, "", 1)
+                require_to_me = True
                 break
 
     index = get_session_id(event)
     index = "0" if "全局" in flag else index
-    res = wb.delete(index, unescape(key), type_)
+    res = wb.delete(index, type_, Message(key), require_to_me)
     if res:
         await matcher.finish("删除成功~")
 
 
-def wb_clear(type_: str = None) -> T_Handler:
+def wb_clear(type_: str = "") -> T_Handler:
     async def wb_clear_(
         event: MessageEvent, arg: Message = CommandArg(), state: T_State = State()
     ):
