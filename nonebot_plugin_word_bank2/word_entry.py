@@ -38,6 +38,7 @@ class WordEntry:
         return key, [str(v) for v in self.values]
 
     def match(self, msg: Message, match_type: MatchType, to_me: bool = False) -> bool:
+        msg = Message(str(msg).strip())  # 去除前后空格
         if self.require_to_me and not to_me:
             return False
 
