@@ -14,6 +14,8 @@ def parse_msg(msg: str) -> str:
 
     :param msg: 待处理的消息
     """
+    msg = re.sub(r"{", "{{", msg)
+    msg = re.sub(r"}", "}}", msg)
     msg = re.sub(r"/at\s*(\d+)", lambda s: f"[CQ:at,qq={s.group(1)}]", msg)
     msg = re.sub(r"/self", "{nickname}", msg)
     msg = re.sub(r"/atself", "{sender_id:at}", msg)
