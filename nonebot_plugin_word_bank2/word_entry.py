@@ -1,6 +1,6 @@
 import re
 from typing import List, Tuple
-from nonebot.adapters.onebot.v11 import Message
+from nonebot.adapters.onebot.v11 import Message, unescape
 from nonebot.log import logger
 
 from .models import MatchType
@@ -58,10 +58,12 @@ class WordEntry:
             return False
 
         elif match_type == MatchType.regex:
+            _msg = unescape(str(msg))
+            _key = unescape(str(self.key))
             try:
-                return bool(re.search(str(self.key), str(msg), re.S))
+                return bool(re.search(_key, _msg, re.S))
             except re.error:
-                logger.error(f"正则匹配错误 - pattern: {self.key}, string: {msg}")
+                logger.error(f"正则匹配错误 - pattern: {_key}, string: {_msg}")
                 return False
 
         return False
