@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Iterator, Optional
 from pathlib import Path
 
 from nonebot.log import logger
@@ -77,14 +77,17 @@ class WordBank(object):
         else:
             return self.__match(index, msg, match_type, to_me)
 
+    def __get_entries(self, index: str, match_type: MatchType) -> Iterator[WordEntry]:
+        for entry in self.__data[match_type.name].get(index, []):
+            yield entry
+        if index != "0":
+            for entry in self.__data[match_type.name].get("0", []):  # 加入全局词库
+                yield entry
+
     def __match(
         self, index: str, msg: Message, match_type: MatchType, to_me: bool = False
     ) -> List[Message]:
-
-        bank: List[WordEntry] = self.__data[match_type.name].get(index, [])
-        bank += self.__data[match_type.name].get("0", [])
-
-        for entry in bank:
+        for entry in self.__get_entries(index, match_type):
             if entry.match(msg, match_type, to_me):
                 return entry.get_values()
         return []
