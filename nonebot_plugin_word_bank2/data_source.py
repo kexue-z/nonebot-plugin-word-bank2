@@ -1,4 +1,5 @@
 import json
+from re import M
 from typing import Dict, List, Optional
 from pathlib import Path
 
@@ -58,15 +59,22 @@ class WordBank(object):
         to_me: bool = False,
     ) -> List[Message]:
         """
-        匹配词条
+        :说明: `match`
+        > 匹配词条
 
-        :param index: 为0时是全局词库
-        :param msg: 需要匹配的消息
-        :param match_type: 为空表示依次尝试所有匹配方式
-                           MatchType.congruence: 全匹配(==)
-                           MatchType.include: 模糊匹配(in)
-                           MatchType.regex: 正则匹配(regex)
-        :return: 首先匹配成功的消息列表
+        :参数:
+          * `index: str`: 为0时是全局词库
+          * `msg: Message`: 需要匹配的消息
+
+        :可选参数:
+          * `match_type: Optional[MatchType] = None`: 为空表示依次尝试所有匹配方式\n
+                MatchType.congruence: 全匹配(==)
+                MatchType.include: 模糊匹配(in)
+                MatchType.regex: 正则匹配(regex)
+          * `to_me: bool = False`: 匹配 @bot
+
+        :返回:
+          - `List[Message]`: 首先匹配成功的消息列表
         """
         if match_type is None:
             for type_ in MatchType:
@@ -98,15 +106,23 @@ class WordBank(object):
         require_to_me: bool = False,
     ) -> bool:
         """
-        新增词条
+        :说明: `set`
+        > 新增词条
 
-        :param index: 为0时是全局词库
-        :param key: 触发短语
-        :param value: 触发后发送的短语
-        :param match_type: MatchType.congruence: 全匹配(==)
-                           MatchType.include: 模糊匹配(in)
-                           MatchType.regex: 正则匹配(regex)
-        :return:
+        :参数:
+          * `index: str`: 为0时是全局词库
+          * `match_type: MatchType`: 匹配方式\n
+                MatchType.congruence: 全匹配(==)
+                MatchType.include: 模糊匹配(in)
+                MatchType.regex: 正则匹配(regex)
+          * `key: Message`: 需要匹配的消息
+          * `value: Message`: 触发后发送的短语
+
+        :可选参数:
+          * `require_to_me: bool = False`: 匹配 @bot
+
+        :返回:
+          - `bool`: 是否新增成功
         """
         name = match_type.name
         add = False
@@ -133,14 +149,22 @@ class WordBank(object):
         require_to_me: bool = False,
     ) -> bool:
         """
-        删除词条
+        :说明: `delete`
+        > 删除词条
 
-        :param index: 为0时是全局词库
-        :param key: 触发短语
-        :param match_type: MatchType.congruence: 全匹配(==)
-                           MatchType.include: 模糊匹配(in)
-                           MatchType.regex: 正则匹配(regex)
-        :return:
+        :参数:
+          * `index: str`: 为0时是全局词库
+          * `match_type: MatchType`: 匹配方式\n
+                MatchType.congruence: 全匹配(==)
+                MatchType.include: 模糊匹配(in)
+                MatchType.regex: 正则匹配(regex)
+          * `key: Message`: 触发短语
+
+        :可选参数:
+          * `require_to_me: bool = False`: 匹配 @bot
+
+        :返回:
+          - `bool`: 是否删除成功
         """
         name = match_type.name
         for entry in list(self.__data[name].get(index, [])):
@@ -154,10 +178,14 @@ class WordBank(object):
 
     def clear(self, index: str) -> bool:
         """
-        清空某个对象的词库
+        :说明: `clear`
+        > 清空词库
 
-        :param index: 为0时是全局词库, 为空时清空所有词库
-        :return:
+        :参数:
+          * `index: str`: 为0时是全局词库, 为空时清空所有词库
+
+        :返回:
+          - `bool`: 是否清空成功
         """
         if index is None:
             self.__data = NULL_BANK
@@ -168,6 +196,27 @@ class WordBank(object):
                     del self.__data[name][index]
         self.__save()
         return True
+
+    def keys(self, index: str, match_type: MatchType) -> List[Message]:
+        """
+        :说明: `keys`
+        > 获取词库的触发短语列表
+
+        :参数:
+          * `index: str`: 为0时是全局词库
+          * `match_type: MatchType`: 匹配方式\n
+                MatchType.congruence: 全匹配(==)
+                MatchType.include: 模糊匹配(in)
+                MatchType.regex: 正则匹配(regex)
+
+        :返回:
+          - `List[Message]`: 触发短语列表
+        """
+        name = match_type.name
+        keys: List[Message] = []
+        for entry in self.__data[name][index]:
+            keys.append(entry.get_key())
+        return keys
 
 
 word_bank = WordBank()

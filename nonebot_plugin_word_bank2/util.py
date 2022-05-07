@@ -10,9 +10,14 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 def parse_msg(msg: str) -> str:
     """
-    替换回答中的 /at, /self, /atself
+    :说明: `parse_msg`
+    > 替换回答中的 `/at`, `/self`, `/atself`
 
-    :param msg: 待处理的消息
+    :参数:
+      * `msg: str`: 待处理的消息
+
+    :返回:
+      - `str`: 消息
     """
     msg = re.sub(r"{", "{{", msg)
     msg = re.sub(r"}", "}}", msg)
@@ -43,10 +48,12 @@ async def save_img(img: bytes, filepath: Path):
 
 async def save_and_convert_img(msg: Message, img_dir: Path):
     """
-    保存消息中的图片，并替换"file"中的文件名为本地路径
+    :说明: `save_and_convert_img`
+    > 保存消息中的图片，并替换 `file` 中的文件名为本地路径
 
-    :param msg: 待处理的消息
-    :param img_dir: 图片保存路径
+    :参数:
+      * `msg: Message`: 待处理的消息
+      * `img_dir: Path`: 图片保存路径
     """
     for msg_seg in msg:
         if msg_seg.type == "image":
@@ -69,10 +76,15 @@ async def save_and_convert_img(msg: Message, img_dir: Path):
 
 def compare_msgseg(msg1: MessageSegment, msg2: MessageSegment) -> bool:
     """
-    判断两个消息段是否一致，目前仅判断 text, face, at, image 类型
+    :说明: `compare_msgseg`
+    > 判断两个消息段是否一致，目前仅判断 text, face, at, image 类型
 
-    :param msg1: 消息段1
-    :param msg2: 消息段2
+    :参数:
+      * `msg1: MessageSegment`: 消息段1
+      * `msg2: MessageSegment`: 消息段2
+
+    :返回:
+      - `bool`: 是否一致
     """
     if msg1.type != msg2.type:
         return False
@@ -90,10 +102,15 @@ def compare_msgseg(msg1: MessageSegment, msg2: MessageSegment) -> bool:
 
 def compare_msg(msg1: Message, msg2: Message) -> bool:
     """
-    判断两个消息是否一致
+    :说明: `compare_msg`
+    > 判断两个消息是否一致
 
-    :param msg1: 消息1
-    :param msg2: 消息2
+    :参数:
+      * `msg1: Message`: 消息1
+      * `msg2: Message`: 消息2
+
+    :返回:
+      - `bool`: 是否一致
     """
     for m1, m2 in zip(msg1, msg2):
         if m1.type != m2.type:
@@ -105,10 +122,15 @@ def compare_msg(msg1: Message, msg2: Message) -> bool:
 
 def include_msg(msg1: Message, msg2: Message) -> bool:
     """
-    判断 消息1 是否包含 消息2，用于模糊匹配
+    :说明: `include_msg`
+    > 判断 消息1 是否包含 消息2，用于模糊匹配
 
-    :param msg1: 消息1
-    :param msg2: 消息2
+    :参数:
+      * `msg1: Message`: 消息1
+      * `msg2: Message`: 消息2
+
+    :返回:
+      - `bool`: 是否包含
     """
     for m1, m2 in zip(msg1, msg2):
         if m1.type != m2.type:

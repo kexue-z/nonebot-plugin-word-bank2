@@ -26,6 +26,9 @@ class WordEntry:
     def get_values(self) -> List[Message]:
         return self.values
 
+    def get_key(self) -> Message:
+        return self.key
+
     @staticmethod
     def load(key: str, values: List[str]) -> "WordEntry":
         require_to_me = False

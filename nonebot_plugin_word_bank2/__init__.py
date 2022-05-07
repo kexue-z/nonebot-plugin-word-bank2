@@ -213,3 +213,40 @@ async def _(matcher: Matcher, state: T_State = State()):
             await matcher.finish(Message.template("删除{keyword}词库成功~"))
     else:
         await matcher.finish("命令取消")
+
+
+wb_search_cmd = on_regex(
+    r"^查询\s*((?:模糊|正则|@)*)\s*词库\s*(.*?)\s*$",
+    flags=re.S,
+    block=True,
+    priority=10,
+    permission=PERM_EDIT,
+)
+
+wb_search_cmd_gl = on_regex(
+    r"^查询\s*((?:群|用户)*)\s*(\d*)\s*((?:全局|模糊|正则|@)*)\s*词库\s*(.*?)\s*$",
+    flags=re.S,
+    block=True,
+    priority=10,
+    permission=PERM_GLOBAL,
+)
+
+
+@wb_search_cmd_gl.handle()
+@wb_search_cmd.handle()
+async def wb_search(
+    bot: Bot,
+    event: MessageEvent,
+    matcher: Matcher,
+    matched: Tuple[str, ...] = RegexGroup(),
+):
+    type, id, flag, value = matched
+    type_ = (
+        MatchType.regex
+        if "正则" in flag
+        else MatchType.include
+        if "模糊" in flag
+        else MatchType.congruence
+    )
+    # TODO
+    pass
