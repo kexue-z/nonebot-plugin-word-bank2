@@ -1,10 +1,11 @@
 import re
 from typing import List, Tuple
-from nonebot.adapters.onebot.v11 import Message, unescape
-from nonebot.log import logger
 
-from .models import MatchType
+from nonebot.log import logger
+from nonebot.adapters.onebot.v11 import Message, unescape
+
 from .util import compare_msg, include_msg
+from .models import MatchType
 
 
 class WordEntry:

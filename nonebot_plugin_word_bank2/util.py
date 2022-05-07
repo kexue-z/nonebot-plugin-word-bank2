@@ -1,9 +1,9 @@
 import re
+from typing import Optional
+from pathlib import Path
+
 import httpx
 import aiofiles
-from pathlib import Path
-from typing import Optional
-
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 

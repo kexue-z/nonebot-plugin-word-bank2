@@ -1,21 +1,22 @@
 import re
 import random
-from typing import Tuple, List
-from nonebot import export, on_command, on_message, on_regex
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageEvent
+from typing import List, Tuple
+
+from nonebot import export, on_regex, on_command, on_message
+from nonebot.params import State, CommandArg, RegexGroup
+from nonebot.typing import T_State, T_Handler
+from nonebot.matcher import Matcher
+from nonebot.permission import SUPERUSER
+from nonebot.adapters.onebot.v11 import Bot, Message, MessageEvent, GroupMessageEvent
 from nonebot.adapters.onebot.v11.permission import (
     GROUP_ADMIN,
     GROUP_OWNER,
     PRIVATE_FRIEND,
 )
-from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, RegexGroup, State
-from nonebot.permission import SUPERUSER
-from nonebot.typing import T_State, T_Handler
 
+from .util import parse_msg, save_and_convert_img
 from .models import MatchType
 from .data_source import word_bank as wb
-from .util import parse_msg, save_and_convert_img
 
 reply_type = "random"
 

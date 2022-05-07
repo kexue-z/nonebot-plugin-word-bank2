@@ -1,12 +1,12 @@
 import json
-from pathlib import Path
 from typing import Dict, List, Optional
+from pathlib import Path
 
-from nonebot.adapters.onebot.v11 import Message, escape
 from nonebot.log import logger
+from nonebot.adapters.onebot.v11 import Message, escape
 
-from .models import MatchType
 from .util import compare_msg
+from .models import MatchType
 from .word_entry import WordEntry
 
 NULL_BANK = {t.name: {"0": []} for t in MatchType}
