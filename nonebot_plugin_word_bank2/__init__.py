@@ -1,6 +1,6 @@
 import re
 import random
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from nonebot import export, on_regex, on_command, on_message
 from nonebot.params import State, CommandArg, RegexGroup
@@ -224,7 +224,7 @@ wb_search_cmd = on_regex(
 )
 
 wb_search_cmd_gl = on_regex(
-    r"^查询\s*((?:群|用户)*)\s*(\d*)\s*((?:全局|模糊|正则|@)*)\s*词库\s*(.*?)\s*$",
+    r"^查询\s*((?:全局|模糊|正则|@)*)\s*词库\s*(.*?)\s*$",
     flags=re.S,
     block=True,
     priority=10,
@@ -232,21 +232,28 @@ wb_search_cmd_gl = on_regex(
 )
 
 
-@wb_search_cmd_gl.handle()
 @wb_search_cmd.handle()
+@wb_search_cmd_gl.handle()
 async def wb_search(
     bot: Bot,
     event: MessageEvent,
     matcher: Matcher,
     matched: Tuple[str, ...] = RegexGroup(),
 ):
-    type, id, flag, value = matched
-    type_ = (
+    match_type, value = matched
+
+    _id = event.get_session_id()
+
+    _match_type = (
         MatchType.regex
-        if "正则" in flag
+        if "正则" in match_type
         else MatchType.include
-        if "模糊" in flag
+        if "模糊" in match_type
         else MatchType.congruence
     )
-    # TODO
-    pass
+
+    keys = wb.keys(_id, _match_type)
+    user_bank = wb.__data[_match_type.name][_id]
+        
+    msg = f"""问: {value}
+    回答: {}"""
