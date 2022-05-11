@@ -1,7 +1,6 @@
 import json
 from re import M
-from typing import Dict, List, Optional
-
+from typing import Dict, List, Iterator, Optional
 from pathlib import Path
 
 from nonebot.log import logger
