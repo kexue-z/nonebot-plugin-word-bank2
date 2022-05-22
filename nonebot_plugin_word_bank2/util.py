@@ -1,11 +1,11 @@
 import re
-from typing import Dict, List, Union, Optional
+from typing import Dict, Optional
 from pathlib import Path
 
 import httpx
 import aiofiles
 from nonebot.log import logger
-from nonebot.adapters.onebot.v11 import Bot, Message, MessageSegment, GroupMessageEvent
+from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
 
 def parse_msg(msg: str) -> str:
@@ -29,14 +29,14 @@ def parse_msg(msg: str) -> str:
 
 async def get_img(url: str) -> Optional[bytes]:
     headers = {
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36 Edg/95.0.1020.53",
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",  # noqa
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36 Edg/95.0.1020.53",  # noqa
     }
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, headers=headers)
             return resp.content
-    except:
+    except httpx.TimeoutException:
         logger.warning(f"图片下载失败：{url}")
         return None
 
@@ -141,31 +141,6 @@ def include_msg(msg1: Message, msg2: Message) -> bool:
         elif not compare_msgseg(m1, m2):
             return False
     return True
-
-
-async def send_forward_msg(
-    bot: Bot,
-    event: GroupMessageEvent,
-    name: str,
-    bot_id: str,
-    msgs: List[Message],
-):
-    """
-    :说明: `send_forward_msg`
-    > 发送合并转发消息
-
-    :参数:
-      * `bot: Bot`: bot 实例
-      * `event: GroupMessageEvent`: 群聊事件
-      * `name: str`: 名字
-      * `bot_id: str`: qq号
-      * `msgs: List[Message]`: 消息列表
-    """
-
-    messages = [to_json(msg, name, bot_id) for msg in msgs]
-    await bot.call_api(
-        "send_group_forward_msg", group_id=event.group_id, messages=messages
-    )
 
 
 def to_json(msg: Message, name: str, bot_id: str) -> Dict:
