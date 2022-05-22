@@ -220,7 +220,7 @@ async def _(matcher: Matcher, state: T_State = State()):
 
 
 wb_search_cmd = on_regex(
-    r"^查询\s*((?:群|用户)*)\s*(\d*)\s*((?:全局)?(?:模糊|正则)?@?)\s*词库$",
+    r"^查询\s*((?:群|用户)*)\s*(\d*)\s*((?:全局)?(?:模糊|正则)?@?)\s*词库\s*(.*?)\s*$",
     flags=re.S,
     block=True,
     priority=10,
