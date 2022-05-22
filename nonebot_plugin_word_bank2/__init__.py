@@ -40,6 +40,10 @@ def wb_match_rule(event: MessageEvent, state: T_State = State()) -> bool:
     return True
 
 
+def to_json(name:str, uin: str, msg: Message):
+    return {"type": "node", "data": {"name": name, "uin": uin, "content": msg}}
+
+
 wb_matcher = on_message(wb_match_rule, priority=99)
 
 
@@ -216,15 +220,7 @@ async def _(matcher: Matcher, state: T_State = State()):
 
 
 wb_search_cmd = on_regex(
-    r"^查询\s*((?:模糊|正则|@)*)\s*词库\s*(.*?)\s*$",
-    flags=re.S,
-    block=True,
-    priority=10,
-    permission=PERM_EDIT,
-)
-
-wb_search_cmd_gl = on_regex(
-    r"^查询\s*((?:群|用户)*)\s*(\d*)\s*((?:全局|模糊|正则|@)*)\s*词库\s*(.*?)\s*$",
+    r"^查询\s*((?:群|用户)*)\s*(\d*)\s*((?:全局)?(?:模糊|正则)?@?)\s*词库$",
     flags=re.S,
     block=True,
     priority=10,
@@ -232,7 +228,6 @@ wb_search_cmd_gl = on_regex(
 )
 
 
-@wb_search_cmd_gl.handle()
 @wb_search_cmd.handle()
 async def wb_search(
     bot: Bot,
@@ -240,7 +235,18 @@ async def wb_search(
     matcher: Matcher,
     matched: Tuple[str, ...] = RegexGroup(),
 ):
-    type, id, flag, value = matched
+    type, id, flag, key = matched
+    nickname = event.sender.card or event.sender.nickname
+    sender_id = event.sender.user_id
+
+    if type and not id:
+        await matcher.finish(f"请填写{type}ID")
+    
+    index = (
+        "0" if "全局" in flag else
+        get_session_id(event) if not type else
+        {'群': 'group', '用户': 'private'}[type] + f"_{id}"
+    )
     type_ = (
         MatchType.regex
         if "正则" in flag
@@ -248,5 +254,42 @@ async def wb_search(
         if "模糊" in flag
         else MatchType.congruence
     )
-    # TODO
-    pass
+    if not (require_to_me := "@" in flag):
+        for name in bot.config.nickname:
+            if key.startswith(name):
+                key = key.replace(name, "", 1)
+                require_to_me = True
+                break
+    
+    entrys = wb.select(index, type_, Message(key), require_to_me)
+
+    if not entrys:
+        await matcher.finish("词库中未找到词条~")
+
+    if isinstance(event, GroupMessageEvent):
+        messages = []
+        for entry in entrys:
+            messages.append(to_json(nickname, event.user_id, entry.key))
+            for msg in entry.values:
+                messages.append(
+                    to_json(list(bot.config.nickname)[0], bot.self_id,
+                    Message.template(msg).format(
+                        nickname=nickname,
+                        sender_id=sender_id,
+                    )
+                ))
+        await bot.call_api(
+            "send_group_forward_msg", group_id=event.group_id, messages=messages
+        )
+    else:
+        messages = ""
+        for entry in entrys:
+            messages += ('\n' if messages else '') + f"#{entry.key}："
+            for msg in entry.values:
+                messages += '\n'+Message.template(msg).format(
+                    nickname=nickname,
+                    sender_id=sender_id,
+                )
+        
+        await matcher.send(messages)
+        
