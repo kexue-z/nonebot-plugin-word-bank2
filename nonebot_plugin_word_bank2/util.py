@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional
+from typing import Dict, List, Union, Optional
 from pathlib import Path
 
 import httpx
@@ -162,17 +162,18 @@ async def send_forward_msg(
       * `msgs: List[Message]`: 消息列表
     """
 
-    def to_json(msg: Message):
-        return {
-            "type": "node",
-            "data": {
-                "name": name,
-                "uin": bot_id,
-                "content": msg,
-            },
-        }
-
-    messages = [to_json(msg) for msg in msgs]
+    messages = [to_json(msg, name, bot_id) for msg in msgs]
     await bot.call_api(
         "send_group_forward_msg", group_id=event.group_id, messages=messages
     )
+
+
+def to_json(msg: Message, name: str, bot_id: str) -> Dict:
+    return {
+        "type": "node",
+        "data": {
+            "name": name,
+            "uin": bot_id,
+            "content": msg,
+        },
+    }

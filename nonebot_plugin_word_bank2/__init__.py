@@ -1,6 +1,7 @@
 import re
 import random
-from typing import List, Tuple
+from typing import Dict, List, Tuple
+from asyncio import sleep
 
 from nonebot import export, on_regex, on_command, on_message
 from nonebot.params import State, CommandArg, RegexGroup
@@ -14,7 +15,7 @@ from nonebot.adapters.onebot.v11.permission import (
     PRIVATE_FRIEND,
 )
 
-from .util import parse_msg, send_forward_msg, save_and_convert_img
+from .util import to_json, parse_msg, save_and_convert_img
 from .models import MatchType
 from .data_source import word_bank as wb
 
@@ -233,7 +234,6 @@ async def wb_search(
 ):
     type, id, flag, key = matched
     nickname = event.sender.card or event.sender.nickname
-    sender_id = event.sender.user_id
 
     if type and not id:
         await matcher.finish(f"请填写{type}ID")
@@ -265,22 +265,30 @@ async def wb_search(
         await matcher.finish("词库中未找到词条~")
 
     if isinstance(event, GroupMessageEvent):
-        messages = []
-        await send_forward_msg(
-            bot=bot,
-            event=event,
-            name="WordBank",
-            bot_id=bot.self_id,
-            msgs=messages,
+        forward_msg: List[Dict] = []
+        for entry in entrys:
+            forward_msg.append(
+                to_json(
+                    "问: " + entry.key, nickname or "user" + " 答:", str(event.user_id)
+                )
+            )
+            for value in entry.values:
+                forward_msg.append(
+                    to_json(
+                        value,
+                        list(bot.config.nickname)[0] or "bot",
+                        str(bot.self_id),
+                    )
+                )
+        await bot.call_api(
+            "send_group_forward_msg", group_id=event.group_id, messages=forward_msg
         )
     else:
-        messages = ""
         for entry in entrys:
-            messages += ("\n" if messages else "") + f"#{entry.key}："
-            for msg in entry.values:
-                messages += "\n" + Message.template(msg).format(
-                    nickname=nickname,
-                    sender_id=sender_id,
-                )
-
-        await matcher.send(messages)
+            # msg_temp = Message.template("问:{entry_key}\n答:").format(entry_key=entry.key)
+            msg_temp = "问: " + Message(entry.key) + " 答:"
+            for value in entry.values:
+                msg_temp += "\n" + Message.template("{value}").format(value=value)
+            # msg_temp += Message.template()
+            await matcher.send(msg_temp)
+            await sleep(1)
