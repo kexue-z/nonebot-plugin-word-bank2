@@ -223,8 +223,16 @@ wb_search_cmd = on_regex(
     priority=10,
     permission=PERM_GLOBAL,
 )
+wb_search_cmd_user = on_regex(
+    r"^查询\s*((?:模糊|正则)?@?)\s*词库\s*(.*?)\s*$",
+    flags=re.S,
+    block=True,
+    priority=10,
+    permission=PERM_EDIT,
+)
 
 
+@wb_search_cmd_user.handle()
 @wb_search_cmd.handle()
 async def wb_search(
     bot: Bot,
@@ -232,7 +240,13 @@ async def wb_search(
     matcher: Matcher,
     matched: Tuple[str, ...] = RegexGroup(),
 ):
-    type, id, flag, key = matched
+    if len(matched) == 2:
+        type = "群" if isinstance(event, GroupMessageEvent) else "用户"
+        id = event.group_id if isinstance(event, GroupMessageEvent) else event.user_id
+        flag, key = matched
+    else:
+        type, id, flag, key = matched
+
     nickname = event.sender.card or event.sender.nickname
 
     if type and not id:
@@ -285,10 +299,8 @@ async def wb_search(
         )
     else:
         for entry in entrys:
-            # msg_temp = Message.template("问:{entry_key}\n答:").format(entry_key=entry.key)
             msg_temp = "问: " + Message(entry.key) + " 答:"
             for value in entry.values:
                 msg_temp += "\n" + Message.template("{value}").format(value=value)
-            # msg_temp += Message.template()
             await matcher.send(msg_temp)
             await sleep(1)
