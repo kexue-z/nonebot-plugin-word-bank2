@@ -1,10 +1,9 @@
 import json
-from re import M
 from typing import Dict, List, Iterator, Optional
 from pathlib import Path
 
 from nonebot.log import logger
-from nonebot.adapters.onebot.v11 import Message, escape
+from nonebot.adapters.onebot.v11 import Message
 
 from .util import compare_msg
 from .models import MatchType
@@ -150,7 +149,7 @@ class WordBank(object):
         match_type: MatchType,
         key: Message,
         require_to_me: bool = False,
-    ) -> list:
+    ) -> List[WordEntry]:
         """
         :说明: `select`
         > 获取词条
@@ -169,12 +168,11 @@ class WordBank(object):
           - `list`: 获取到的词条
         """
         return [
-            entry for entry in 
-            list(self.__data[match_type.name].get(index, []))
-            if entry.require_to_me == require_to_me and 
-            (not key or compare_msg(entry.key, key))
+            entry
+            for entry in list(self.__data[match_type.name].get(index, []))
+            if entry.require_to_me == require_to_me
+            and (not key or compare_msg(entry.key, key))
         ]
-
 
     def delete(
         self,

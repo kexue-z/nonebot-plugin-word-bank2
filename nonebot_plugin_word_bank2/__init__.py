@@ -14,7 +14,7 @@ from nonebot.adapters.onebot.v11.permission import (
     PRIVATE_FRIEND,
 )
 
-from .util import parse_msg, save_and_convert_img
+from .util import parse_msg, send_forward_msg, save_and_convert_img
 from .models import MatchType
 from .data_source import word_bank as wb
 
@@ -38,10 +38,6 @@ def wb_match_rule(event: MessageEvent, state: T_State = State()) -> bool:
         msgs = [random.choice(msgs)]
     state["replies"] = msgs
     return True
-
-
-def to_json(name:str, uin: str, msg: Message):
-    return {"type": "node", "data": {"name": name, "uin": uin, "content": msg}}
 
 
 wb_matcher = on_message(wb_match_rule, priority=99)
@@ -241,11 +237,13 @@ async def wb_search(
 
     if type and not id:
         await matcher.finish(f"请填写{type}ID")
-    
+
     index = (
-        "0" if "全局" in flag else
-        get_session_id(event) if not type else
-        {'群': 'group', '用户': 'private'}[type] + f"_{id}"
+        "0"
+        if "全局" in flag
+        else get_session_id(event)
+        if not type
+        else {"群": "group", "用户": "private"}[type] + f"_{id}"
     )
     type_ = (
         MatchType.regex
@@ -260,7 +258,7 @@ async def wb_search(
                 key = key.replace(name, "", 1)
                 require_to_me = True
                 break
-    
+
     entrys = wb.select(index, type_, Message(key), require_to_me)
 
     if not entrys:
@@ -268,28 +266,21 @@ async def wb_search(
 
     if isinstance(event, GroupMessageEvent):
         messages = []
-        for entry in entrys:
-            messages.append(to_json(nickname, event.user_id, entry.key))
-            for msg in entry.values:
-                messages.append(
-                    to_json(list(bot.config.nickname)[0], bot.self_id,
-                    Message.template(msg).format(
-                        nickname=nickname,
-                        sender_id=sender_id,
-                    )
-                ))
-        await bot.call_api(
-            "send_group_forward_msg", group_id=event.group_id, messages=messages
+        await send_forward_msg(
+            bot=bot,
+            event=event,
+            name="WordBank",
+            bot_id=bot.self_id,
+            msgs=messages,
         )
     else:
         messages = ""
         for entry in entrys:
-            messages += ('\n' if messages else '') + f"#{entry.key}："
+            messages += ("\n" if messages else "") + f"#{entry.key}："
             for msg in entry.values:
-                messages += '\n'+Message.template(msg).format(
+                messages += "\n" + Message.template(msg).format(
                     nickname=nickname,
                     sender_id=sender_id,
                 )
-        
+
         await matcher.send(messages)
-        
