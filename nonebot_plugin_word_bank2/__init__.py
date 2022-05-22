@@ -290,7 +290,7 @@ async def wb_search(
                 forward_msg.append(
                     to_json(
                         value,
-                        list(bot.config.nickname)[0] or "bot",
+                        "bot回复",
                         str(bot.self_id),
                     )
                 )
