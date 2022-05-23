@@ -227,7 +227,7 @@ wb_search_cmd_user = on_regex(
     r"^查询\s*((?:模糊|正则)?@?)\s*词库\s*(.*?)\s*$",
     flags=re.S,
     block=True,
-    priority=10,
+    priority=11,
     permission=PERM_EDIT,
 )
 

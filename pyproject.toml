@@ -5,7 +5,7 @@ homepage = "https://github.com/kexue-z/nonebot-plugin-word-bank2"
 license = "GPL-3.0"
 name = "nonebot-plugin-word-bank2"
 readme = "README.md"
-version = "0.1.5.1"
+version = "0.1.5.2"
 
 [tool.poetry.dependencies]
 aiofiles = "^0.8.0"
