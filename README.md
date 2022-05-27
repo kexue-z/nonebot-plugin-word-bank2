@@ -6,30 +6,6 @@ _✨ 无数据库的轻量问答插件 ✨_
 
 </div>
 
-# !!! 注意
-
-由于 [#770](https://github.com/nonebot/nonebot2/issues/770)
-
-因此需要改动nonebot bata1的源码才能正常使用 /atself 功能
-
-> beta2 不需要
-
-`...site-packages/nonebot/adapters/_template.py`
-
-`L178`从
-
-```py
-if inspect.ismethod(method):
-                formatter = getattr(segment_class, format_spec)
-        return (
-```
-改为
-
-```py
-if callable(method):
-                formatter = getattr(segment_class, format_spec)
-        return (
-```
 
 # 功能
 
@@ -52,13 +28,13 @@ pip install nonebot-plugin-word-bank2
 ## 问答教学
 
 - 设置词条命令由`问句`和`答句`组成。设置之后,  收到`消息`时触发。并非所有人都可以设置词条,  详见[权限](#permission)
-  
+
 - 格式`[模糊|全局|正则|@]问...答...`
   - `模糊|正则` 匹配模式中可任性一个或`不选`, `不选` 表示 `全匹配`
   - `全局`, `@` 可与以上匹配模式组合使用
 
 - 教学中可以使用换行
-  - 例如 
+  - 例如
     ```
     问
     123
@@ -78,8 +54,8 @@ pip install nonebot-plugin-word-bank2
 - `模糊问...答...` 当`问句`出现在`消息`里时则会触发
 
 
-- `正则问...答...`,  当`问句`被`消息`正则捕获时则会匹配  
-- 
+- `正则问...答...`,  当`问句`被`消息`正则捕获时则会匹配
+-
     例如: 正则问[他你]不理答你被屏蔽了
 
     | 消息     | 回复       |
@@ -89,7 +65,7 @@ pip install nonebot-plugin-word-bank2
     | 你不理我 | 你被屏蔽了 |
 
 
-- `全局问...答...`,  在所有群聊和私聊中都可以触发,  可以和以上几种组合使用  
+- `全局问...答...`,  在所有群聊和私聊中都可以触发,  可以和以上几种组合使用
   - 例如: `全局模糊问 晚安 答 不准睡`
 
 
@@ -107,7 +83,7 @@ pip install nonebot-plugin-word-bank2
 - `/at` + `qq号`, 当答句中包含`/at` + `qq号`时将会被替换为@某人
   - 例如: `问 群主在吗 答 /at 123456789在吗`
 
-- `/self`, 当答句中包含`/self`时将会被替换为发送者的群昵称  
+- `/self`, 当答句中包含`/self`时将会被替换为发送者的群昵称
   - 例如: `问 我是谁 答 你是/self` (群昵称为: 我老婆)
 
 - `/atself`, 当答句中包含`/atself`时将会被替换为@发送者
@@ -128,10 +104,10 @@ pip install nonebot-plugin-word-bank2
 - 删除全局词库
   - 例如: `/删除全局词库`
 
-- 删除全部词库  
+- 删除全部词库
   - 例如: `/删除全部词库`
 
-- <span id="permission">权限</span> 
+- <span id="permission">权限</span>
 
 |              | 群主 | 群管理 | 私聊好友 | 超级用户 |
 | ------------ | ---- | ------ | -------- | -------- |

@@ -3,7 +3,7 @@ import random
 from typing import Dict, List, Tuple
 from asyncio import sleep
 
-from nonebot import export, on_regex, on_command, on_message
+from nonebot import export, on_regex, get_driver, on_command, on_message
 from nonebot.params import State, CommandArg, RegexGroup
 from nonebot.typing import T_State, T_Handler
 from nonebot.matcher import Matcher
@@ -18,10 +18,13 @@ from nonebot.adapters.onebot.v11.permission import (
 from .util import to_json, parse_msg, save_and_convert_img
 from .models import MatchType
 from .data_source import word_bank as wb
+from .moinkeypath import monkeypatch
 
 reply_type = "random"
 
 export().word_bank = wb
+driver = get_driver()
+driver.on_startup(monkeypatch)
 
 
 def get_session_id(event: MessageEvent) -> str:
