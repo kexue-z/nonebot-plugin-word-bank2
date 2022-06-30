@@ -16,7 +16,7 @@ from nonebot.adapters.onebot.v11.permission import (
 )
 
 from .util import to_json, parse_msg, save_and_convert_img
-from .models import MatchType
+from .models import MatchType, IncludeCQCodeError
 from .data_source import word_bank as wb
 
 reply_type = "random"
@@ -107,9 +107,11 @@ async def wb_set(
 
     index = get_session_id(event)
     index = "0" if "全局" in flag else index
-    res = wb.set(index, type_, Message(key), value, require_to_me)
-    if res:
+    try:
+        wb.set(index, type_, Message(key), value, require_to_me)
         await matcher.finish(message="我记住了~")
+    except IncludeCQCodeError:
+        await matcher.finish("正则匹配中不允许带有CQ码")
 
 
 wb_del_cmd = on_regex(

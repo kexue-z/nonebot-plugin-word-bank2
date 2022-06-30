@@ -6,7 +6,7 @@ from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Message
 
 from .util import compare_msg
-from .models import MatchType
+from .models import MatchType, IncludeCQCodeError
 from .word_entry import WordEntry
 
 NULL_BANK = {t.name: {"0": []} for t in MatchType}
@@ -128,6 +128,13 @@ class WordBank(object):
         """
         name = match_type.name
         add = False
+
+        # 如果为正则词条，检查是否为纯文本，否则抛出异常
+        if match_type == MatchType.regex:
+            for i in key:
+                if i.type != "text":
+                    raise IncludeCQCodeError("正则词条只能包含纯文本")
+
         if index in self.__data[name]:
             for entry in self.__data[name][index]:
                 if entry.require_to_me != require_to_me:
