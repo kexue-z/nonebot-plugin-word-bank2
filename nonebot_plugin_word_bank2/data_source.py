@@ -211,6 +211,23 @@ class WordBank(object):
             if entry.require_to_me != require_to_me:
                 continue
             if compare_msg(entry.key, key):
+                text = entry.get_values()
+                text_str = str(text[0])
+                k = 0
+                n = text_str.count("file:///")
+                if n != 0:
+                    for i in range(n):
+                        path2 = text_str.find(".image", k)
+                        if path2 != -1:
+                            path1 = text_str.find("file:///", k)
+                            img_path = Path(text_str[path1 + 8:path2 + 6])
+                            if img_path.is_file():
+                                img_path.unlink()
+                                if not img_path.is_file():
+                                    logger.info("成功删除对应图片文件")
+                            k = path2 + 6
+                        else:
+                            logger.info("不存在对应图片文件")
                 self.__data[name][index].remove(entry)
                 self.__save()
                 return True
