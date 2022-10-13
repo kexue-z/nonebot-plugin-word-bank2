@@ -4,7 +4,7 @@ from typing import Dict, List, Tuple
 from asyncio import sleep
 
 from nonebot import on_regex, on_command, on_message
-from nonebot.params import State, CommandArg, RegexGroup
+from nonebot.params import CommandArg, RegexGroup
 from nonebot.typing import T_State, T_Handler
 from nonebot.matcher import Matcher
 from nonebot.permission import SUPERUSER
@@ -29,7 +29,7 @@ def get_session_id(event: MessageEvent) -> str:
         return f"private_{event.user_id}"
 
 
-def wb_match_rule(event: MessageEvent, state: T_State = State()) -> bool:
+def wb_match_rule(event: MessageEvent, state: T_State) -> bool:
     msgs = wb.match(get_session_id(event), event.get_message(), to_me=event.is_tome())
     if not msgs:
         return False
@@ -43,7 +43,7 @@ wb_matcher = on_message(wb_match_rule, priority=99)
 
 
 @wb_matcher.handle()
-async def handle_wb(event: MessageEvent, state: T_State = State()):
+async def handle_wb(event: MessageEvent, state: T_State):
     msgs: List[Message] = state["replies"]
     for msg in msgs:
         await wb_matcher.finish(
@@ -166,7 +166,7 @@ async def _(
 
 def wb_clear(type_: str = "") -> T_Handler:
     async def wb_clear_(
-        event: MessageEvent, arg: Message = CommandArg(), state: T_State = State()
+        event: MessageEvent, state: T_State, arg: Message = CommandArg()
     ):
         msg = arg.extract_plain_text().strip()
         if msg:
@@ -205,7 +205,7 @@ prompt_clear = Message.template("此命令将会清空您的{keyword}词库，�
 @wb_clear_cmd.got("is_sure", prompt=prompt_clear)
 @wb_clear_cmd_gl.got("is_sure", prompt=prompt_clear)
 @wb_clear_bank.got("is_sure", prompt=prompt_clear)
-async def _(matcher: Matcher, state: T_State = State()):
+async def _(matcher: Matcher, state: T_State):
     is_sure = str(state["is_sure"]).strip()
     index = state["index"]
     if is_sure == "yes":
