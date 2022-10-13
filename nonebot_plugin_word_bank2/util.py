@@ -3,7 +3,7 @@ from typing import Dict, Optional
 from pathlib import Path
 
 import httpx
-import aiofiles
+import anyio
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 
@@ -42,7 +42,7 @@ async def get_img(url: str) -> Optional[bytes]:
 
 
 async def save_img(img: bytes, filepath: Path):
-    async with aiofiles.open(str(filepath.absolute()), "wb") as f:
+    async with await anyio.open_file(filepath, "wb") as f:
         await f.write(img)
 
 
