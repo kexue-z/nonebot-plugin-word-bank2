@@ -33,5 +33,7 @@
     ".mypy_cache": true,
     "poetry.lock": true,
     "LICENSE": true
-  }
+  },
+  "python.linting.pylintEnabled": false,
+  "python.linting.enabled": true
 }
