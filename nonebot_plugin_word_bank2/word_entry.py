@@ -39,7 +39,7 @@ class WordEntry:
 
     def dump(self) -> Tuple[str, List[str]]:
         key = f"/atme {self.key}" if self.require_to_me else str(self.key)
-        return key, [str(v) for v in self.values]
+        return key, [str(v.extract_plain_text()) for v in self.values]
 
     def match(self, msg: Message, match_type: MatchType, to_me: bool = False) -> bool:
         msg = Message(str(msg).strip())  # 去除前后空格
