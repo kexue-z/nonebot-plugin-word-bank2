@@ -63,7 +63,7 @@ async def handle_wb(event: MessageEvent, state: T_State):
     msgs: List[Message] = state["replies"]
     for msg in msgs:
         await wb_matcher.finish(
-            Message.template(msg).format(
+            Message.template(msg.extract_plain_text()).format(
                 nickname=event.sender.card or event.sender.nickname,
                 sender_id=event.sender.user_id,
             )
