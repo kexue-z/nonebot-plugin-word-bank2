@@ -5,16 +5,20 @@ from pathlib import Path
 from nonebot.log import logger
 from nonebot.adapters.onebot.v11 import Message
 
+import nonebot_plugin_localstore as store
+
 from .util import compare_msg
 from .models import MatchType, IncludeCQCodeError
 from .word_entry import WordEntry
 
+
 NULL_BANK = {t.name: {"0": []} for t in MatchType}
+
 
 
 class WordBank(object):
     def __init__(self):
-        self.data_dir = Path("data/word_bank").absolute()
+        self.data_dir: Path = store.get_plugin_data_dir()
         self.bank_path = self.data_dir / "bank.json"
         self.img_dir = self.data_dir / "img"
         self.data_dir.mkdir(parents=True, exist_ok=True)

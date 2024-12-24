@@ -1,24 +1,29 @@
-import re
-import random
-from typing import Dict, List, Tuple
-from asyncio import sleep
+from nonebot import require
 
-from nonebot import on_regex, on_command, on_message
-from nonebot.params import CommandArg, RegexGroup
-from nonebot.typing import T_State, T_Handler
-from nonebot.matcher import Matcher
-from nonebot.permission import SUPERUSER
-from nonebot.adapters.onebot.v11 import Bot, Message, MessageEvent, GroupMessageEvent
+require("nonebot_plugin_localstore")
+
+
+import random
+import re
+from asyncio import sleep
+from typing import Dict, List, Tuple
+
+from nonebot import on_command, on_message, on_regex
+from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, Message, MessageEvent
 from nonebot.adapters.onebot.v11.permission import (
     GROUP_ADMIN,
     GROUP_OWNER,
     PRIVATE_FRIEND,
 )
+from nonebot.matcher import Matcher
+from nonebot.params import CommandArg, RegexGroup
+from nonebot.permission import SUPERUSER
 from nonebot.plugin import PluginMetadata
+from nonebot.typing import T_Handler, T_State
 
-from .util import to_json, parse_msg, save_and_convert_img
-from .models import MatchType, IncludeCQCodeError
 from .data_source import word_bank as wb
+from .models import IncludeCQCodeError, MatchType
+from .util import parse_msg, save_and_convert_img, to_json
 
 __plugin_meta__ = PluginMetadata(
     name="nonebot-plugin-word-bank2",
@@ -210,10 +215,18 @@ wb_clear_cmd = on_command(
     handlers=[wb_clear()],
 )
 wb_clear_cmd_gl = on_command(
-    "删除全局词库", block=True, priority=10, permission=PERM_GLOBAL, handlers=[wb_clear("全局")]
+    "删除全局词库",
+    block=True,
+    priority=10,
+    permission=PERM_GLOBAL,
+    handlers=[wb_clear("全局")],
 )
 wb_clear_bank = on_command(
-    "删除全部词库", block=True, priority=10, permission=PERM_GLOBAL, handlers=[wb_clear("全部")]
+    "删除全部词库",
+    block=True,
+    priority=10,
+    permission=PERM_GLOBAL,
+    handlers=[wb_clear("全部")],
 )
 
 

@@ -72,6 +72,7 @@ async def save_and_convert_img(msg: Message, img_dir: Path):
                     continue
                 await save_img(data, filepath)
             msg_seg.data["file"] = f"file:///{filepath.resolve()}"
+            msg_seg.data['url'] = ""
 
 
 def compare_msgseg(msg1: MessageSegment, msg2: MessageSegment) -> bool:
