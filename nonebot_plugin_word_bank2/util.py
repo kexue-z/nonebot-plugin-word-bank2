@@ -1,11 +1,12 @@
 import re
-from typing import Dict, Optional
+from hashlib import md5
 from pathlib import Path
+from typing import Dict, Optional
 
-import httpx
 import anyio
-from nonebot.log import logger
+import httpx
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
+from nonebot.log import logger
 
 
 def parse_msg(msg: str) -> str:
@@ -46,7 +47,7 @@ async def save_img(img: bytes, filepath: Path):
         await f.write(img)
 
 
-async def save_and_convert_img(msg: Message, img_dir: Path):
+async def save_and_convert_img(msg: Message, img_dir: Path) -> Message:
     """
     :说明: `save_and_convert_img`
     > 保存消息中的图片，并替换 `file` 中的文件名为本地路径
@@ -58,21 +59,39 @@ async def save_and_convert_img(msg: Message, img_dir: Path):
     for msg_seg in msg:
         if msg_seg.type == "image":
             filename = msg_seg.data.get("file", "")
+
             if not filename:
                 continue
-            # 检查图片文件夹中有无同名文件
-            images = [f.name for f in img_dir.iterdir() if f.is_file()]
-            filepath = img_dir / filename
-            if filename not in images:
-                url = msg_seg.data.get("url", "")
-                if not url:
-                    continue
-                data = await get_img(url)
-                if not data:
-                    continue
+
+            url = msg_seg.data.get("url", "")
+
+            # 获取图片的md5值
+            if data := await get_img(url):
+                _filename = md5(data).hexdigest() + ".image"
+                filepath = img_dir / _filename
+
+                # 如果图片已经存在，则覆盖
+                if filepath.exists():
+                    filepath.unlink()
+
                 await save_img(data, filepath)
-            msg_seg.data["file"] = f"file:///{filepath.resolve()}"
-            msg_seg.data['url'] = ""
+                # 将file字段替换为本地路径
+                msg_seg.data["file"] = f"file:///{filepath.resolve()}"
+                # 将url字段删除
+                msg_seg.data.pop("url")
+
+    logger.debug(f"save_and_convert_img: {msg}")
+    return msg
+
+    # images = [f.name for f in img_dir.iterdir() if f.is_file()]
+    # filepath = img_dir / filename
+    # if filename not in images:
+    #     if not url:
+    #         continue
+    #     if not data:
+    #         continue
+    #     await save_img(data, filepath)
+    # msg_seg.data["url"] = ""
 
 
 def compare_msgseg(msg1: MessageSegment, msg2: MessageSegment) -> bool:

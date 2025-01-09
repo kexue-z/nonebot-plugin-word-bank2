@@ -124,7 +124,7 @@ async def wb_set(
                 break
 
     value = Message(parse_msg(value))  # 替换/at, /self, /atself
-    await save_and_convert_img(value, wb.img_dir)  # 保存回答中的图片
+    value = await save_and_convert_img(value, wb.img_dir)  # 保存回答中的图片
 
     index = get_session_id(event)
     index = "0" if "全局" in flag else index
