@@ -4,7 +4,7 @@ authors = [{ name = "kexue", email = "x@kexue-cloud.cn" }]
 description = "无数据问答插件"
 license = "GPL-3.0"
 readme = "README.md"
-version = "0.2.0"
+version = "0.2.1"
 requires-python = "<4.0,>=3.10"
 dependencies = [
     "httpx>=0.28.1",
